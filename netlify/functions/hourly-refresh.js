@@ -12,6 +12,8 @@ const CHANNEL_MAP = {
   'shop_app': 'Shop App',
 };
 
+const EXCLUDE_SOURCES = new Set(['shopify_draft_order', '1520611']);
+
 function getMondayISO() {
   const now = new Date();
   const day = now.getDay();
@@ -42,6 +44,7 @@ async function getChannelData(mondayISO) {
     const data = await res.json();
     for (const order of data.orders) {
       const source = order.source_name || 'other';
+      if (EXCLUDE_SOURCES.has(source)) continue;
       rawChannels[source] = (rawChannels[source] || 0) + parseFloat(order.total_price || 0);
     }
 
