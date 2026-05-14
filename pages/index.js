@@ -1,11 +1,13 @@
 import Head from 'next/head';
 import { getStore } from '@netlify/blobs';
 
-const RANKS = [
-  { badge: '#FFD700', badgeText: '#000', border: 'rgba(255,215,0,0.35)', glow: '0 0 24px rgba(255,215,0,0.2)' },
-  { badge: '#A8A9AD', badgeText: '#000', border: 'rgba(168,169,173,0.35)', glow: '0 0 24px rgba(168,169,173,0.15)' },
-  { badge: '#CD7F32', badgeText: '#fff', border: 'rgba(205,127,50,0.35)', glow: '0 0 24px rgba(205,127,50,0.15)' },
-  { badge: '#1e4a1e', badgeText: '#fff', border: 'rgba(255,255,255,0.08)', glow: 'none' },
+const RANK_COLOURS = [
+  { badge: '#FFD700', badgeText: '#000' },
+  { badge: '#A8A9AD', badgeText: '#000' },
+  { badge: '#CD7F32', badgeText: '#fff' },
+  { badge: '#1e4a1e', badgeText: '#fff' },
+  { badge: '#1e4a1e', badgeText: '#fff' },
+  { badge: '#1e4a1e', badgeText: '#fff' },
 ];
 
 function formatRevenue(amount) {
@@ -51,7 +53,7 @@ export default function ChannelLeaderboard({ data }) {
         fontFamily: "'Inter', sans-serif",
         color: '#ffffff',
       }}>
-        <div style={{ maxWidth: '680px', margin: '0 auto' }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
 
           <div style={{ textAlign: 'center', marginBottom: '24px' }}>
             <div style={{ fontSize: '36px', lineHeight: 1, marginBottom: '8px' }}>📊</div>
@@ -73,71 +75,74 @@ export default function ChannelLeaderboard({ data }) {
           </div>
 
           {data ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {sorted.map((channel, i) => {
-                const rank = RANKS[i] || RANKS[3];
-                return (
-                  <div key={channel.name} style={{
-                    backgroundColor: '#0d2318',
-                    borderRadius: '14px',
-                    padding: '18px 20px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px',
-                    border: `1px solid ${rank.border}`,
-                    boxShadow: rank.glow,
-                  }}>
-                    <div style={{
-                      width: '44px', height: '44px', borderRadius: '50%',
-                      backgroundColor: rank.badge, color: rank.badgeText,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontWeight: 900, fontSize: '18px', flexShrink: 0,
+            <>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '10px',
+                marginBottom: '10px',
+              }}>
+                {sorted.map((channel, i) => {
+                  const rank = RANK_COLOURS[i] || RANK_COLOURS[3];
+                  return (
+                    <div key={channel.name} style={{
+                      backgroundColor: '#0d2318',
+                      borderRadius: '14px',
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '10px',
                     }}>
-                      {i + 1}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontWeight: 800, fontSize: '17px', textTransform: 'uppercase',
-                        letterSpacing: '0.06em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-                      }}>
-                        {channel.name}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <div style={{
+                          width: '32px', height: '32px', borderRadius: '50%',
+                          backgroundColor: rank.badge, color: rank.badgeText,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontWeight: 900, fontSize: '14px', flexShrink: 0,
+                        }}>
+                          {i + 1}
+                        </div>
+                        <div style={{
+                          fontWeight: 800, fontSize: '13px', textTransform: 'uppercase',
+                          letterSpacing: '0.06em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          {channel.name}
+                        </div>
+                      </div>
+                      <div>
+                        <div style={{ fontSize: '10px', fontWeight: 600, color: '#6dab6d', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px' }}>
+                          This Week
+                        </div>
+                        <div style={{ fontSize: '24px', fontWeight: 900, lineHeight: 1, color: '#ffffff' }}>
+                          {formatRevenue(channel.revenue)}
+                        </div>
                       </div>
                     </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: '10px', fontWeight: 600, color: '#6dab6d', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
-                        This Week
-                      </div>
-                      <div style={{ fontSize: '30px', fontWeight: 900, lineHeight: 1, color: '#ffffff' }}>
-                        {formatRevenue(channel.revenue)}
-                      </div>
-                    </div>
+                  );
+                })}
+              </div>
+
+              <div style={{
+                backgroundColor: '#0d2318', borderRadius: '14px', padding: '16px 20px',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}>
+                <div style={{ fontWeight: 800, fontSize: '17px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Company Total
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: '10px', fontWeight: 600, color: '#6dab6d', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '2px' }}>
+                    This Week
                   </div>
-                );
-              })}
-            </div>
+                  <div style={{ fontSize: '28px', fontWeight: 900, lineHeight: 1, color: '#ffffff' }}>
+                    {formatRevenue(sorted.reduce((sum, c) => sum + c.revenue, 0))}
+                  </div>
+                </div>
+              </div>
+            </>
           ) : (
             <div style={{ textAlign: 'center', color: '#4a7a4a', padding: '60px 20px', fontSize: '14px' }}>
               No data yet — check back after the first update.
-            </div>
-          )}
-
-          {data && (
-            <div style={{
-              backgroundColor: '#0d2318', borderRadius: '14px', padding: '18px 20px',
-              display: 'flex', alignItems: 'center', marginTop: '10px',
-              border: '1px solid rgba(255,255,255,0.08)',
-            }}>
-              <div style={{ flex: 1, fontWeight: 800, fontSize: '17px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                Company Total
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '10px', fontWeight: 600, color: '#6dab6d', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '4px' }}>
-                  This Week
-                </div>
-                <div style={{ fontSize: '30px', fontWeight: 900, lineHeight: 1, color: '#ffffff' }}>
-                  {formatRevenue(sorted.reduce((sum, c) => sum + c.revenue, 0))}
-                </div>
-              </div>
             </div>
           )}
 
