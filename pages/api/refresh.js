@@ -18,7 +18,7 @@ const CHANNEL_ID_MAP = {
   'gid://shopify/ChannelInformation/79751086195': 'App',
 };
 
-const EXCLUDE_CHANNELS = new Set(['Decathlon', 'Draft Orders', 'shopify_draft_order']);
+const EXCLUDE_CHANNELS = new Set(['Decathlon', 'Draft Orders', 'shopify_draft_order', 'other']);
 
 const ORDERS_QUERY = `
   query GetOrders($queryStr: String!, $after: String) {
