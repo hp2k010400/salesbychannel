@@ -23,6 +23,7 @@ const ORDERS_QUERY = `
         node {
           totalPriceSet { shopMoney { amount } }
           channelInformation {
+            channelId
             channelDefinition { channelName }
           }
         }
@@ -68,7 +69,7 @@ async function getChannelData(mondayISO) {
 
     for (const { node: order } of edges) {
       const channelName = order.channelInformation?.channelDefinition?.channelName || 'other';
-      if (channelName === 'other') console.log('OTHER order channelInformation:', JSON.stringify(order.channelInformation));
+      if (channelName === 'other') console.log('OTHER channelId:', order.channelInformation?.channelId);
       if (EXCLUDE_CHANNELS.has(channelName)) continue;
       rawChannels[channelName] = (rawChannels[channelName] || 0) + parseFloat(order.totalPriceSet.shopMoney.amount || 0);
     }
