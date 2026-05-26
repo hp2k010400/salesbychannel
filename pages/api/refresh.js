@@ -4,15 +4,19 @@ const STORE_DOMAIN = process.env.SHOPIFY_STORE;
 const ACCESS_TOKEN = process.env.SHOPIFY_ACCESS_TOKEN;
 
 const CHANNEL_MAP = {
-  'web': 'Web',
-  'pos': 'POS',
+  'web': 'Website',
+  'pos': 'Point of Sale (POS)',
   'tapcart': 'App',
   'iphone': 'App',
   'android': 'App',
   'shop_app': 'App',
   'ebay': 'Marketplace',
+  'Ebay': 'Marketplace',
+  'eBay': 'Marketplace',
   'amazon': 'Marketplace',
+  'Amazon': 'Marketplace',
   'decathlon': 'Marketplace',
+  'Decathlon': 'Marketplace',
 };
 
 const EXCLUDE_SOURCES = new Set(['shopify_draft_order', '1520611']);
