@@ -68,7 +68,7 @@ async function getChannelData(mondayISO) {
 
     for (const { node: order } of edges) {
       const channelName = order.channelInformation?.channelDefinition?.channelName || 'other';
-      console.log('CHANNEL:', channelName);
+      if (channelName === 'other') console.log('OTHER order channelInformation:', JSON.stringify(order.channelInformation));
       if (EXCLUDE_CHANNELS.has(channelName)) continue;
       rawChannels[channelName] = (rawChannels[channelName] || 0) + parseFloat(order.totalPriceSet.shopMoney.amount || 0);
     }
