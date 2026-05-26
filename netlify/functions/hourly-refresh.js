@@ -14,6 +14,10 @@ const CHANNEL_MAP = {
   'Amazon by Shopify': 'Marketplace',
 };
 
+const CHANNEL_ID_MAP = {
+  'gid://shopify/ChannelInformation/79751086195': 'App',
+};
+
 const EXCLUDE_CHANNELS = new Set(['Decathlon', 'Draft Orders', 'shopify_draft_order']);
 
 const ORDERS_QUERY = `
@@ -68,8 +72,10 @@ async function getChannelData(mondayISO) {
     const { edges, pageInfo } = data.orders;
 
     for (const { node: order } of edges) {
-      const channelName = order.channelInformation?.channelDefinition?.channelName || 'other';
-      if (channelName === 'other') console.log('OTHER channelId:', order.channelInformation?.channelId);
+      const channelId = order.channelInformation?.channelId;
+      const channelName = order.channelInformation?.channelDefinition?.channelName
+        || CHANNEL_ID_MAP[channelId]
+        || 'other';
       if (EXCLUDE_CHANNELS.has(channelName)) continue;
       rawChannels[channelName] = (rawChannels[channelName] || 0) + parseFloat(order.totalPriceSet.shopMoney.amount || 0);
     }
