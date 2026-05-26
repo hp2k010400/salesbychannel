@@ -15,11 +15,9 @@ const CHANNEL_MAP = {
   'eBay': 'Marketplace',
   'amazon': 'Marketplace',
   'Amazon': 'Marketplace',
-  'decathlon': 'Marketplace',
-  'Decathlon': 'Marketplace',
 };
 
-const EXCLUDE_SOURCES = new Set(['shopify_draft_order', '1520611']);
+const EXCLUDE_SOURCES = new Set(['shopify_draft_order', '1520611', 'decathlon', 'Decathlon']);
 
 function getMondayISO() {
   const now = new Date();
