@@ -49,6 +49,7 @@ async function getChannelData(mondayISO) {
     const data = await res.json();
     for (const order of data.orders) {
       const source = order.source_name || 'other';
+      console.log('ORDER SOURCE:', source, order.order_number);
       if (EXCLUDE_SOURCES.has(source)) continue;
       rawChannels[source] = (rawChannels[source] || 0) + parseFloat(order.total_price || 0);
     }
