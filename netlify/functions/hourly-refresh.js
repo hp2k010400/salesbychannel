@@ -7,18 +7,34 @@ const CHANNEL_MAP = {
   'Online Store': 'Website',
   'Point of Sale': 'Point of Sale (POS)',
   'Tapcart - Mobile App': 'App',
+  'Tapcart': 'App',
   'Marketplace Connect': 'Marketplace',
+  'eBay': 'Marketplace',
+  'Amazon': 'Marketplace',
 };
 
-const SHOPIFYQL_GQL = `
-  query ShopifyQLChannels($q: String!) {
-    shopifyqlQuery(query: $q) {
-      ... on TableResponse {
-        tableData { headers rowData }
+const CHANNEL_ID_MAP = {
+  'gid://shopify/ChannelInformation/79751086195': 'App',
+};
+
+const EXCLUDE_CHANNELS = new Set([
+  'Decathlon', 'Draft Orders', 'shopify_draft_order', 'other',
+  'eBay by Shopify', 'Amazon by Shopify',
+]);
+
+const ORDERS_QUERY = `
+  query GetOrders($queryStr: String!, $after: String) {
+    orders(first: 250, query: $queryStr, after: $after) {
+      edges {
+        node {
+          currentSubtotalPriceSet { shopMoney { amount } }
+          channelInformation {
+            channelId
+            channelDefinition { channelName }
+          }
+        }
       }
-      ... on ParseErrorResponse {
-        parseErrors { message }
-      }
+      pageInfo { hasNextPage endCursor }
     }
   }
 `;
@@ -33,37 +49,48 @@ function getMondayISO() {
   return monday.toISOString();
 }
 
-async function getChannelData(mondayDate) {
-  const q = `FROM sales SINCE ${mondayDate} UNTIL today SELECT channel, SUM(net_sales) AS net_sales GROUP BY channel ORDER BY net_sales DESC`;
-
+async function gqlFetch(queryStr, after) {
   const res = await fetch(`https://${STORE_DOMAIN}/admin/api/2024-01/graphql.json`, {
     method: 'POST',
     headers: {
       'X-Shopify-Access-Token': ACCESS_TOKEN,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ query: SHOPIFYQL_GQL, variables: { q } }),
+    body: JSON.stringify({ query: ORDERS_QUERY, variables: { queryStr, after } }),
   });
-
-  if (!res.ok) throw new Error(`ShopifyQL fetch failed: ${res.status}`);
+  if (!res.ok) throw new Error(`GraphQL fetch failed: ${res.status}`);
   const json = await res.json();
   if (json.errors) throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`);
+  return json.data;
+}
 
-  const result = json.data.shopifyqlQuery;
-  if (result.parseErrors?.length) throw new Error(`ShopifyQL: ${result.parseErrors.map(e => e.message).join(', ')}`);
+async function getChannelData(mondayISO) {
+  const rawChannels = {};
+  let after = null;
+  const mondayDate = mondayISO.slice(0, 10);
+  const queryStr = `financial_status:paid processed_at:>=${mondayDate}`;
 
-  const { headers, rowData } = result.tableData;
-  const chIdx = headers.indexOf('channel');
-  const salIdx = headers.indexOf('net_sales');
+  do {
+    const data = await gqlFetch(queryStr, after);
+    const { edges, pageInfo } = data.orders;
+
+    for (const { node: order } of edges) {
+      const channelId = order.channelInformation?.channelId;
+      const channelName = order.channelInformation?.channelDefinition?.channelName
+        || CHANNEL_ID_MAP[channelId]
+        || 'other';
+      if (EXCLUDE_CHANNELS.has(channelName)) continue;
+      const amount = parseFloat(order.currentSubtotalPriceSet.shopMoney.amount || 0);
+      rawChannels[channelName] = (rawChannels[channelName] || 0) + amount;
+    }
+
+    after = pageInfo.hasNextPage ? pageInfo.endCursor : null;
+  } while (after);
 
   const merged = {};
-  for (const row of rowData) {
-    const channelName = row[chIdx];
-    const revenue = parseFloat(String(row[salIdx] || '0').replace(/,/g, ''));
-    if (!channelName || isNaN(revenue) || revenue <= 0) continue;
-    const mappedName = CHANNEL_MAP[channelName];
-    if (!mappedName) continue;
-    merged[mappedName] = (merged[mappedName] || 0) + revenue;
+  for (const [channelName, revenue] of Object.entries(rawChannels)) {
+    const name = CHANNEL_MAP[channelName] || channelName;
+    merged[name] = (merged[name] || 0) + revenue;
   }
 
   return Object.entries(merged).map(([name, revenue]) => ({ name, revenue }));
@@ -72,8 +99,7 @@ async function getChannelData(mondayDate) {
 exports.handler = async () => {
   try {
     const mondayISO = getMondayISO();
-    const mondayDate = mondayISO.slice(0, 10);
-    const channels = await getChannelData(mondayDate);
+    const channels = await getChannelData(mondayISO);
 
     const store = getStore({
       name: 'sales-channels',
