@@ -29,7 +29,7 @@ const ORDERS_QUERY = `
         node {
           name
           createdAt
-          totalPriceSet { shopMoney { amount } }
+          currentSubtotalPriceSet { shopMoney { amount } }
           channelInformation {
             channelId
             channelDefinition { channelName }
@@ -83,7 +83,7 @@ async function getChannelData(mondayISO, debug = false) {
         || CHANNEL_ID_MAP[channelId]
         || 'other';
       if (EXCLUDE_CHANNELS.has(channelName)) continue;
-      const amount = parseFloat(order.totalPriceSet.shopMoney.amount || 0);
+      const amount = parseFloat(order.currentSubtotalPriceSet.shopMoney.amount || 0);
       const mappedName = CHANNEL_MAP[channelName] || channelName;
       if (mappedName === 'Marketplace' && amount > 5000) continue;
       rawChannels[channelName] = (rawChannels[channelName] || 0) + amount;
