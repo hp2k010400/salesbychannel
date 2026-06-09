@@ -9,6 +9,8 @@ const CHANNEL_MAP = {
   'Tapcart - Mobile App': 'App',
   'Tapcart': 'App',
   'Marketplace Connect': 'Marketplace',
+  'eBay': 'Marketplace',
+  'Amazon': 'Marketplace',
 };
 
 const CHANNEL_ID_MAP = {
@@ -17,7 +19,7 @@ const CHANNEL_ID_MAP = {
 
 const EXCLUDE_CHANNELS = new Set([
   'Decathlon', 'Draft Orders', 'shopify_draft_order', 'other',
-  'eBay', 'eBay by Shopify', 'Amazon', 'Amazon by Shopify',
+  'eBay by Shopify', 'Amazon by Shopify',
 ]);
 
 const ORDERS_QUERY = `
