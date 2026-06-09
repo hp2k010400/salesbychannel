@@ -80,7 +80,10 @@ async function getChannelData(mondayISO) {
         || CHANNEL_ID_MAP[channelId]
         || 'other';
       if (EXCLUDE_CHANNELS.has(channelName)) continue;
-      rawChannels[channelName] = (rawChannels[channelName] || 0) + parseFloat(order.totalPriceSet.shopMoney.amount || 0);
+      const amount = parseFloat(order.totalPriceSet.shopMoney.amount || 0);
+      const mappedName = CHANNEL_MAP[channelName] || channelName;
+      if (mappedName === 'Marketplace' && amount > 5000) continue;
+      rawChannels[channelName] = (rawChannels[channelName] || 0) + amount;
     }
 
     after = pageInfo.hasNextPage ? pageInfo.endCursor : null;
