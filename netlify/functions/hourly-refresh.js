@@ -8,17 +8,17 @@ const CHANNEL_MAP = {
   'Point of Sale': 'Point of Sale (POS)',
   'Tapcart - Mobile App': 'App',
   'Tapcart': 'App',
-  'eBay': 'Marketplace',
-  'eBay by Shopify': 'Marketplace',
-  'Amazon': 'Marketplace',
-  'Amazon by Shopify': 'Marketplace',
+  'Marketplace Connect': 'Marketplace',
 };
 
 const CHANNEL_ID_MAP = {
   'gid://shopify/ChannelInformation/79751086195': 'App',
 };
 
-const EXCLUDE_CHANNELS = new Set(['Decathlon', 'Draft Orders', 'shopify_draft_order', 'other']);
+const EXCLUDE_CHANNELS = new Set([
+  'Decathlon', 'Draft Orders', 'shopify_draft_order', 'other',
+  'eBay', 'eBay by Shopify', 'Amazon', 'Amazon by Shopify',
+]);
 
 const ORDERS_QUERY = `
   query GetOrders($queryStr: String!, $after: String) {
