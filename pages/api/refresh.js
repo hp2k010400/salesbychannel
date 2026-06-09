@@ -25,6 +25,8 @@ const ORDERS_QUERY = `
     orders(first: 250, query: $queryStr, after: $after) {
       edges {
         node {
+          name
+          createdAt
           totalPriceSet { shopMoney { amount } }
           channelInformation {
             channelId
@@ -62,8 +64,9 @@ async function gqlFetch(queryStr, after) {
   return json.data;
 }
 
-async function getChannelData(mondayISO) {
+async function getChannelData(mondayISO, debug = false) {
   const rawChannels = {};
+  const debugOrders = [];
   let after = null;
   const queryStr = `financial_status:paid created_at:>='${mondayISO}'`;
 
@@ -77,7 +80,11 @@ async function getChannelData(mondayISO) {
         || CHANNEL_ID_MAP[channelId]
         || 'other';
       if (EXCLUDE_CHANNELS.has(channelName)) continue;
-      rawChannels[channelName] = (rawChannels[channelName] || 0) + parseFloat(order.totalPriceSet.shopMoney.amount || 0);
+      const amount = parseFloat(order.totalPriceSet.shopMoney.amount || 0);
+      rawChannels[channelName] = (rawChannels[channelName] || 0) + amount;
+      if (debug && (CHANNEL_MAP[channelName] === 'Marketplace' || channelName === 'Marketplace')) {
+        debugOrders.push({ name: order.name, createdAt: order.createdAt, channel: channelName, amount });
+      }
     }
 
     after = pageInfo.hasNextPage ? pageInfo.endCursor : null;
@@ -89,7 +96,10 @@ async function getChannelData(mondayISO) {
     merged[name] = (merged[name] || 0) + revenue;
   }
 
-  return Object.entries(merged).map(([name, revenue]) => ({ name, revenue }));
+  return {
+    channels: Object.entries(merged).map(([name, revenue]) => ({ name, revenue })),
+    debugOrders,
+  };
 }
 
 export default async function handler(req, res) {
@@ -100,7 +110,12 @@ export default async function handler(req, res) {
 
   try {
     const mondayISO = getMondayISO();
-    const channels = await getChannelData(mondayISO);
+    const isDebug = req.query.debug === 'marketplace';
+    const { channels, debugOrders } = await getChannelData(mondayISO, isDebug);
+
+    if (isDebug) {
+      return res.status(200).json({ mondayISO, marketplaceOrders: debugOrders });
+    }
 
     const store = getStore('sales-channels');
     await store.setJSON('current', {
