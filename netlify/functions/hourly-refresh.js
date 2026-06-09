@@ -97,9 +97,12 @@ async function getChannelData(mondayISO) {
 }
 
 exports.handler = async () => {
+  console.log('hourly-refresh: starting');
   try {
     const mondayISO = getMondayISO();
+    console.log('hourly-refresh: monday =', mondayISO);
     const channels = await getChannelData(mondayISO);
+    console.log('hourly-refresh: channels =', JSON.stringify(channels));
 
     const store = getStore({
       name: 'sales-channels',
