@@ -7,36 +7,18 @@ const CHANNEL_MAP = {
   'Online Store': 'Website',
   'Point of Sale': 'Point of Sale (POS)',
   'Tapcart - Mobile App': 'App',
-  'Tapcart': 'App',
   'Marketplace Connect': 'Marketplace',
-  'eBay': 'Marketplace',
-  'Amazon': 'Marketplace',
 };
 
-const CHANNEL_ID_MAP = {
-  'gid://shopify/ChannelInformation/79751086195': 'App',
-};
-
-const EXCLUDE_CHANNELS = new Set([
-  'Decathlon', 'Draft Orders', 'shopify_draft_order', 'other',
-  'eBay by Shopify', 'Amazon by Shopify',
-]);
-
-const ORDERS_QUERY = `
-  query GetOrders($queryStr: String!, $after: String) {
-    orders(first: 250, query: $queryStr, after: $after) {
-      edges {
-        node {
-          name
-          createdAt
-          currentSubtotalPriceSet { shopMoney { amount } }
-          channelInformation {
-            channelId
-            channelDefinition { channelName }
-          }
-        }
+const SHOPIFYQL_GQL = `
+  query ShopifyQLChannels($q: String!) {
+    shopifyqlQuery(query: $q) {
+      ... on TableResponse {
+        tableData { headers rowData }
       }
-      pageInfo { hasNextPage endCursor }
+      ... on ParseErrorResponse {
+        parseErrors { message }
+      }
     }
   }
 `;
@@ -51,60 +33,40 @@ function getMondayISO() {
   return monday.toISOString();
 }
 
-async function gqlFetch(queryStr, after) {
+async function getChannelData(mondayDate) {
+  const q = `FROM sales SINCE ${mondayDate} UNTIL today SELECT channel, SUM(net_sales) AS net_sales GROUP BY channel ORDER BY net_sales DESC`;
+
   const res = await fetch(`https://${STORE_DOMAIN}/admin/api/2024-01/graphql.json`, {
     method: 'POST',
     headers: {
       'X-Shopify-Access-Token': ACCESS_TOKEN,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ query: ORDERS_QUERY, variables: { queryStr, after } }),
+    body: JSON.stringify({ query: SHOPIFYQL_GQL, variables: { q } }),
   });
-  if (!res.ok) throw new Error(`GraphQL fetch failed: ${res.status}`);
+
+  if (!res.ok) throw new Error(`ShopifyQL fetch failed: ${res.status}`);
   const json = await res.json();
   if (json.errors) throw new Error(`GraphQL errors: ${JSON.stringify(json.errors)}`);
-  return json.data;
-}
 
-async function getChannelData(mondayISO, debug = false) {
-  const rawChannels = {};
-  const debugOrders = [];
-  let after = null;
-  const mondayDate = mondayISO.slice(0, 10);
-  const queryStr = `financial_status:paid processed_at:>=${mondayDate}`;
+  const result = json.data.shopifyqlQuery;
+  if (result.parseErrors?.length) throw new Error(`ShopifyQL: ${result.parseErrors.map(e => e.message).join(', ')}`);
 
-  do {
-    const data = await gqlFetch(queryStr, after);
-    const { edges, pageInfo } = data.orders;
-
-    for (const { node: order } of edges) {
-      const channelId = order.channelInformation?.channelId;
-      const channelName = order.channelInformation?.channelDefinition?.channelName
-        || CHANNEL_ID_MAP[channelId]
-        || 'other';
-      if (EXCLUDE_CHANNELS.has(channelName)) continue;
-      const amount = parseFloat(order.currentSubtotalPriceSet.shopMoney.amount || 0);
-      const mappedName = CHANNEL_MAP[channelName] || channelName;
-      if (mappedName === 'Marketplace' && amount > 5000) continue;
-      rawChannels[channelName] = (rawChannels[channelName] || 0) + amount;
-      if (debug && (CHANNEL_MAP[channelName] === 'Marketplace' || channelName === 'Marketplace')) {
-        debugOrders.push({ name: order.name, createdAt: order.createdAt, channel: channelName, amount });
-      }
-    }
-
-    after = pageInfo.hasNextPage ? pageInfo.endCursor : null;
-  } while (after);
+  const { headers, rowData } = result.tableData;
+  const chIdx = headers.indexOf('channel');
+  const salIdx = headers.indexOf('net_sales');
 
   const merged = {};
-  for (const [channelName, revenue] of Object.entries(rawChannels)) {
-    const name = CHANNEL_MAP[channelName] || channelName;
-    merged[name] = (merged[name] || 0) + revenue;
+  for (const row of rowData) {
+    const channelName = row[chIdx];
+    const revenue = parseFloat(String(row[salIdx] || '0').replace(/,/g, ''));
+    if (!channelName || isNaN(revenue) || revenue <= 0) continue;
+    const mappedName = CHANNEL_MAP[channelName];
+    if (!mappedName) continue;
+    merged[mappedName] = (merged[mappedName] || 0) + revenue;
   }
 
-  return {
-    channels: Object.entries(merged).map(([name, revenue]) => ({ name, revenue })),
-    debugOrders,
-  };
+  return Object.entries(merged).map(([name, revenue]) => ({ name, revenue }));
 }
 
 export default async function handler(req, res) {
@@ -115,12 +77,8 @@ export default async function handler(req, res) {
 
   try {
     const mondayISO = getMondayISO();
-    const isDebug = req.query.debug === 'marketplace';
-    const { channels, debugOrders } = await getChannelData(mondayISO, isDebug);
-
-    if (isDebug) {
-      return res.status(200).json({ mondayISO, marketplaceOrders: debugOrders });
-    }
+    const mondayDate = mondayISO.slice(0, 10);
+    const channels = await getChannelData(mondayDate);
 
     const store = getStore('sales-channels');
     await store.setJSON('current', {
