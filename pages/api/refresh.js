@@ -71,7 +71,7 @@ async function getChannelData(mondayISO, debug = false) {
   const debugOrders = [];
   let after = null;
   const mondayDate = mondayISO.slice(0, 10);
-  const queryStr = `financial_status:paid created_at:>=${mondayDate}`;
+  const queryStr = `financial_status:paid processed_at:>=${mondayDate}`;
 
   do {
     const data = await gqlFetch(queryStr, after);
