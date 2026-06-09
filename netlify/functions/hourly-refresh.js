@@ -80,7 +80,7 @@ async function getChannelData(mondayISO) {
         || CHANNEL_ID_MAP[channelId]
         || 'other';
       if (EXCLUDE_CHANNELS.has(channelName)) continue;
-      const amount = parseFloat(order.currentSubtotalPriceSet.shopMoney.amount || 0);
+      const amount = parseFloat(order.currentSubtotalPriceSet?.shopMoney?.amount || 0);
       rawChannels[channelName] = (rawChannels[channelName] || 0) + amount;
     }
 
